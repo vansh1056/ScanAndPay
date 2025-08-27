@@ -22,7 +22,7 @@ const TeamPage: React.FC = () => {
       name: 'Vansh Singh',
       role: 'UX/UI Designerr',
       photo: 'Images/member1.jpg',
-      bio: 'Full-stack developer with 8+ years of experience in building scalable web applications.',
+      bio: 'One of the developer of Scan & Pay, driving innovation and strategic vision.',
       skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
       social: {
         github: 'https://github.com',
@@ -35,7 +35,7 @@ const TeamPage: React.FC = () => {
       name: 'Shiv Panwar',
       role: 'Backend Engineer',
       photo: 'Images/member2.jpeg',
-      bio: 'Creative designer passionate about creating intuitive and beautiful user experiences.',
+      bio: 'backend engineer with a passion for scalable web applications.',
       skills: ['Figma', 'Adobe CC', 'User Research', 'Prototyping'],
       social: {
         linkedin: 'https://linkedin.com',
@@ -47,8 +47,8 @@ const TeamPage: React.FC = () => {
       name: 'Yaduvenrda Chaudhary',
       role: 'Documentation Specialist',
       photo: 'Images/member4.jpeg',
-      bio: 'Systems architect specializing in distributed systems and cloud infrastructure.',
-      skills: ['Python', 'Docker', 'Kubernetes', 'PostgreSQL'],
+      bio: 'Documentation specialist ensuring clarity and usability in all user guides.',
+      skills: ['Python', 'Docker', 'Kubernetes', 'MySQL'],
       social: {
         github: 'https://github.com',
         email: 'mike@scanpay.com'
@@ -59,7 +59,7 @@ const TeamPage: React.FC = () => {
       name: 'Sharandeep Maherwal',
       role: 'Database Manager',
       photo: 'Images/member3.jpeg',
-      bio: 'Strategic product leader focused on delivering exceptional user value and business growth.',
+      bio: 'Database manager optimizing data integrity and performance.',
       skills: ['Product Strategy', 'Analytics', 'Agile', 'Market Research'],
       social: {
         linkedin: 'https://linkedin.com',
