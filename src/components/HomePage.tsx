@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, QrCode, CreditCard, Send, X, Zap, Upload } from 'lucide-react';
+import { FileText, QrCode, X } from 'lucide-react';
 import PDFUploader from './PDFUploader';
 import QRScanner from './QRScanner';
 
@@ -10,7 +10,6 @@ const HomePage: React.FC = () => {
   const [scannedIP, setScannedIP] = useState<string>('');
   const [manualIP, setManualIP] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
-  const [isSending, setIsSending] = useState(false);
 
   const pricePerPage = 2;
   const totalPages = pageCounts.reduce((sum, count) => sum + count, 0);
@@ -65,7 +64,12 @@ const HomePage: React.FC = () => {
             <h2 className="text-2xl font-semibold mb-2">Connect to Printer</h2>
             <p className="text-gray-600 mb-4">Scan QR code or enter printer IP manually.</p>
 
-            <QRScanner onScan={handleQRScan} isScanning={isScanning} setIsScanning={setIsScanning} />
+            <QRScanner
+              onScan={handleQRScan}
+              isScanning={isScanning}
+              setIsScanning={setIsScanning}
+              constraints={{ facingMode: 'environment' }} // ensure back camera on mobile
+            />
 
             <div className="mt-4">
               <input
@@ -91,6 +95,7 @@ const HomePage: React.FC = () => {
             <FileText className="mx-auto mb-4 h-12 w-12 text-blue-600" />
             <h2 className="text-2xl font-semibold mb-4">Upload Your Document</h2>
             <p className="text-gray-600 mb-6">Drag & drop PDF files or click below to upload.</p>
+
             <PDFUploader onPDFUpload={handlePDFUpload} />
 
             {pdfFiles.length > 0 && (
