@@ -18,6 +18,7 @@ const HomePage: React.FC = () => {
 
   const handleQRScan = (ip: string) => {
     setScannedIP(ip);
+    setIsScanning(false); // stop scanner after success
     setStep(2);
   };
 
@@ -52,7 +53,7 @@ const HomePage: React.FC = () => {
         <div className="flex justify-between items-center mb-8">
           {['Connect', 'Upload', 'Payment'].map((label, idx) => (
             <div key={idx} className="flex-1">
-              <motion.div 
+              <motion.div
                 className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2
                   ${step === idx + 1 ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : step > idx + 1 ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-gray-700'}`}
                 animate={{ scale: step === idx + 1 ? 1.2 : 1 }}
@@ -67,7 +68,7 @@ const HomePage: React.FC = () => {
 
         {/* Step 1: QR / Manual IP */}
         {step === 1 && (
-          <motion.div className="bg-gray-800 shadow-lg rounded-xl p-6 text-center" 
+          <motion.div className="bg-gray-800 shadow-lg rounded-xl p-6 text-center"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <QrCode className="mx-auto h-12 w-12 text-green-400 mb-4 animate-pulse" />
             <h2 className="text-2xl font-semibold mb-2">Connect to Printer</h2>
@@ -89,7 +90,8 @@ const HomePage: React.FC = () => {
                 onScan={handleQRScan}
                 isScanning={isScanning}
                 setIsScanning={setIsScanning}
-                constraints={{ video: { facingMode: { exact: "environment" } } }}
+                // prefer rear camera; QRScanner will gracefully fall back if not available
+                constraints={{ video: { facingMode: { exact: 'environment' } } }}
               />
             )}
 
@@ -108,6 +110,11 @@ const HomePage: React.FC = () => {
                 Connect
               </button>
             </div>
+
+            {/* Small helper text showing current/last scanned IP (non-intrusive) */}
+            {scannedIP && (
+              <p className="mt-3 text-xs text-gray-400">Selected printer: {scannedIP}</p>
+            )}
           </motion.div>
         )}
 

@@ -1,166 +1,160 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import { QrCode, Camera, StopCircle, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
-interface QRScannerProps {
-  onScan: (result: string) => void;
+type QRScannerProps = {
+  onScan: (text: string) => void;
   isScanning: boolean;
-  setIsScanning: (scanning: boolean) => void;
-}
+  setIsScanning: React.Dispatch<React.SetStateAction<boolean>>;
+  constraints?: MediaStreamConstraints; // optional; HomePage can pass preferred facingMode
+};
 
-const QRScanner: React.FC<QRScannerProps> = ({ onScan, isScanning, setIsScanning }) => {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const [error, setError] = useState<string>('');
-  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+const stopStream = (stream?: MediaStream | null) => {
+  if (!stream) return;
+  for (const track of stream.getTracks()) {
+    try { track.stop(); } catch {}
+  }
+};
 
-  // 📷 Load available cameras safely
+const QRScanner: React.FC<QRScannerProps> = ({ onScan, isScanning, setIsScanning, constraints }) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const detectorRef = useRef<BarcodeDetector | null>(null);
+
+  // build a detector if supported
+  const setupDetector = async () => {
+    // @ts-expect-error - BarcodeDetector may not exist in all TS lib versions
+    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      // @ts-ignore
+      const formats = (await (window as any).BarcodeDetector?.getSupportedFormats?.()) || [];
+      if (formats.includes('qr_code') || formats.length === 0) {
+        // @ts-ignore
+        detectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
+      }
+    }
+  };
+
   useEffect(() => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.error("❌ getUserMedia is not supported in this browser.");
-      setError("Camera access is not supported in this browser or insecure context (use HTTPS or localhost).");
+    setupDetector();
+  }, []);
+
+  useEffect(() => {
+    if (!isScanning) {
+      // cleanup when hidden
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      stopStream(streamRef.current);
+      streamRef.current = null;
       return;
     }
 
-    const loadCameras = async () => {
+    let cancelled = false;
+
+    const start = async () => {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices
-          .filter((device) => device.kind === 'videoinput')
-          .map((device) => ({
-            id: device.deviceId,
-            label: device.label || `Camera ${device.deviceId.slice(-4)}`
-          }));
-        setCameras(videoDevices);
-        if (videoDevices.length === 0) {
-          setError('No cameras found. Please ensure camera permissions are granted.');
+        // Try strict constraints first (rear cam), then fall back.
+        const tryConstraints: MediaStreamConstraints[] = [
+          constraints ?? { video: { facingMode: { exact: 'environment' } } },
+          { video: { facingMode: 'environment' } },
+          { video: true }
+        ];
+
+        let stream: MediaStream | null = null;
+        let lastError: unknown = null;
+
+        for (const c of tryConstraints) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(c);
+            break;
+          } catch (e) {
+            lastError = e;
+          }
         }
-      } catch (error) {
-        console.error("📷 Error accessing camera:", error);
-        setError("Unable to access the camera. Please check permissions.");
+
+        if (!stream) {
+          console.error('Camera access failed:', lastError);
+          alert('Failed to start camera. Please allow camera permission in browser settings and try again.');
+          setIsScanning(false);
+          return;
+        }
+
+        if (cancelled) {
+          stopStream(stream);
+          return;
+        }
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        const detect = async () => {
+          if (!videoRef.current) return;
+          try {
+            if (detectorRef.current) {
+              const detections = await detectorRef.current.detect(videoRef.current);
+              const match = detections.find(d => (d as any).rawValue);
+              const text = (match as any)?.rawValue as string | undefined;
+              if (text) {
+                onScan(text);
+                return; // stop after successful scan
+              }
+            }
+          } catch (e) {
+            // If BarcodeDetector fails, just continue; user can enter IP manually.
+            // console.warn('Detector error', e);
+          }
+          rafRef.current = requestAnimationFrame(detect);
+        };
+
+        // kick off loop (only if detector available)
+        if (detectorRef.current) {
+          rafRef.current = requestAnimationFrame(detect);
+        }
+      } catch (err: any) {
+        console.error('getUserMedia error:', err);
+        const name = err?.name || 'Error';
+        const msg =
+          name === 'NotAllowedError'
+            ? 'Camera permission was denied. Click the lock icon in the address bar and allow the Camera, then reload.'
+            : name === 'NotFoundError'
+            ? 'No camera was found on this device.'
+            : name === 'OverconstrainedError'
+            ? 'Requested camera constraints are not supported on this device.'
+            : 'Failed to start camera.';
+        alert(msg);
+        setIsScanning(false);
       }
     };
 
-    loadCameras();
-  }, []);
+    start();
 
-  // 🟢 Start/stop scanning when state changes
-  const startScanningInternal = React.useCallback(async () => {
-    if (cameras.length === 0) {
-      setError('No cameras found. Please ensure camera permissions are granted.');
-      setIsScanning(false);
-      return;
-    }
-
-    try {
-      setError('');
-      scannerRef.current = new Html5Qrcode('qr-reader');
-
-      await scannerRef.current.start(
-        cameras[0].id,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          console.log('Scanned:', decodedText);
-          const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
-          if (ipRegex.test(decodedText)) {
-            onScan(decodedText);
-          } else {
-            onScan(decodedText); // Accept all for now
-          }
-          setIsScanning(false);
-        },
-        (err) => {
-          console.warn('QR scan error:', err); // Ignore frequent errors
-        }
-      );
-    } catch (err) {
-      console.error('Error starting scanner:', err);
-      setError('Failed to start camera. Please check permissions and reload the page.');
-      setIsScanning(false);
-    }
-  }, [cameras, onScan, setIsScanning]);
-
-  useEffect(() => {
-    if (isScanning) {
-      startScanningInternal();
-    } else {
-      stopScanningInternal();
-    }
-  }, [isScanning, cameras, startScanningInternal]);
-
-  const stopScanningInternal = async () => {
-    try {
-      if (scannerRef.current?.isScanning) {
-        await scannerRef.current.stop();
-      }
-    } catch (err) {
-      console.error('Error stopping scanner:', err);
-    }
-  };
-
-  const startScanning = () => {
-    setIsScanning(true);
-  };
-
-  const stopScanning = () => {
-    setIsScanning(false);
-  };
-
-  const handleManualIP = () => {
-    const ip = prompt('Enter printer IP address manually:');
-    if (ip) {
-      onScan(ip);
-    }
-  };
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      stopStream(streamRef.current);
+      streamRef.current = null;
+    };
+  }, [isScanning, setIsScanning, constraints, onScan]);
 
   return (
-    <div className="w-full">
-      {!isScanning ? (
-        <div className="text-center space-y-4">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-            <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">
-              Scan the QR code on your printer to connect
-            </p>
-            <div className="space-y-2">
-              <button
-                onClick={startScanning}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center mx-auto"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Start Scanning
-              </button>
-              <button
-                onClick={handleManualIP}
-                className="text-sm text-gray-600 hover:text-gray-800 underline"
-              >
-                Enter IP manually
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div id="qr-reader" className="w-full"></div>
-          <div className="text-center">
-            <button
-              onClick={stopScanning}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center mx-auto"
-            >
-              <StopCircle className="h-4 w-4 mr-2" />
-              Stop Scanning
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
-          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-          <span className="text-red-700 text-sm">{error}</span>
-        </div>
+    <div className="mt-4 flex flex-col items-center">
+      <video
+        ref={videoRef}
+        className="w-full max-w-md rounded-lg border border-gray-700"
+        playsInline
+        muted
+      />
+      <button
+        onClick={() => setIsScanning(false)}
+        className="mt-3 bg-gray-700 text-white px-3 py-2 rounded hover:bg-gray-600 transition-all"
+      >
+        Stop Camera
+      </button>
+      {/* Small hint if detector is missing */}
+      {!detectorRef.current && (
+        <p className="mt-2 text-xs text-gray-400">
+          Tip: If QR doesn’t auto-detect, enter the printer IP manually.
+        </p>
       )}
     </div>
   );
