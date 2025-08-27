@@ -73,12 +73,25 @@ const HomePage: React.FC = () => {
             <h2 className="text-2xl font-semibold mb-2">Connect to Printer</h2>
             <p className="text-gray-300 mb-4">Scan QR code or enter printer IP manually.</p>
 
-            <QRScanner
-              onScan={handleQRScan}
-              isScanning={isScanning}
-              setIsScanning={setIsScanning}
-              constraints={{ facingMode: 'environment' }}
-            />
+            {/* Start Camera button (only visible before scanning) */}
+            {!isScanning && (
+              <button
+                onClick={() => setIsScanning(true)}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-all shadow-md hover:shadow-lg"
+              >
+                Start Camera
+              </button>
+            )}
+
+            {/* Camera only renders after user clicks */}
+            {isScanning && (
+              <QRScanner
+                onScan={handleQRScan}
+                isScanning={isScanning}
+                setIsScanning={setIsScanning}
+                constraints={{ video: { facingMode: { exact: "environment" } } }}
+              />
+            )}
 
             <div className="mt-4 flex justify-center">
               <input
