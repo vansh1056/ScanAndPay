@@ -54,18 +54,13 @@ const HomePage: React.FC = () => {
     setStatus("Uploading file to printer...");
 
     const formData = new FormData();
-formData.append("file", file);
-formData.append("printer_ip", scannedIP);
-formData.append("printer_name", "HP LaserJet Pro MFP M126nw[47F853]"); // for now, fixed
-
-await fetch("https://54daf125775d.ngrok-free.app/print", {
-  method: "POST",
-  body: formData,
-});
-
+    pdfFiles.forEach(file => {
+      formData.append("file", file);
+    });
 
     try {
-        const response = await fetch("https://54daf125775d.ngrok-free.app/print",{
+      const response = await fetch("https://<your-ngrok-url>/print",
+         {
         method: "POST",
         body: formData,
       });

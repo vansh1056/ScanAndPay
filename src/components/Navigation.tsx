@@ -22,7 +22,7 @@ const Navigation: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <FileText className="h-8 w-8 text-blue-600" />
-              <span className="font-bold text-xl text-gray-800">Scan & Pay</span>
+              <span className="font-bold text-xl text-gray-800">Public Printer</span>
             </Link>
           </div>
 
