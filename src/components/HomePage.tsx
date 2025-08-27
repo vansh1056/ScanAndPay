@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { FileText, QrCode, X } from 'lucide-react';
 import PDFUploader from './PDFUploader';
 import QRScanner from './QRScanner';
+import { motion } from 'framer-motion';
 
 const HomePage: React.FC = () => {
-  const [step, setStep] = useState(1); // 1: QR/IP, 2: Upload, 3: Payment
+  const [step, setStep] = useState(1);
   const [pdfFiles, setPdfFiles] = useState<File[]>([]);
   const [pageCounts, setPageCounts] = useState<number[]>([]);
   const [scannedIP, setScannedIP] = useState<string>('');
@@ -15,10 +16,9 @@ const HomePage: React.FC = () => {
   const totalPages = pageCounts.reduce((sum, count) => sum + count, 0);
   const totalPrice = totalPages * pricePerPage;
 
-  // Step 1: QR Scan or Manual IP
   const handleQRScan = (ip: string) => {
     setScannedIP(ip);
-    setStep(2); // move to Upload step
+    setStep(2);
   };
 
   const handleManualIPSubmit = () => {
@@ -28,11 +28,10 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Step 2: Upload PDF
   const handlePDFUpload = (newFile: File, pages: number) => {
     setPdfFiles(prev => [...prev, newFile]);
     setPageCounts(prev => [...prev, pages]);
-    setStep(3); // move to Payment step
+    setStep(3);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -41,17 +40,26 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
-      <div className="max-w-4xl mx-auto space-y-10">
+    <div className="min-h-screen bg-gray-900 relative overflow-hidden text-white py-10 px-4">
+      {/* Animated background */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="w-full h-full bg-[conic-gradient(at_top_right,_#1e3a8a,_#9333ea,_#1e3a8a)] animate-spin-slow opacity-10"></div>
+      </div>
 
-        {/* Progress Indicator */}
+      <div className="relative max-w-4xl mx-auto space-y-10 z-10">
+
+        {/* Progress Indicator with techy glow */}
         <div className="flex justify-between items-center mb-8">
           {['Connect', 'Upload', 'Payment'].map((label, idx) => (
             <div key={idx} className="flex-1">
-              <div className={`w-8 h-8 mx-auto rounded-full text-white flex items-center justify-center mb-2
-                ${step === idx + 1 ? 'bg-blue-600' : step > idx + 1 ? 'bg-green-600' : 'bg-gray-300'}`}>
+              <motion.div 
+                className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2
+                  ${step === idx + 1 ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : step > idx + 1 ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-gray-700'}`}
+                animate={{ scale: step === idx + 1 ? 1.2 : 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {idx + 1}
-              </div>
+              </motion.div>
               <p className="text-center text-sm font-medium">{label}</p>
             </div>
           ))}
@@ -59,80 +67,83 @@ const HomePage: React.FC = () => {
 
         {/* Step 1: QR / Manual IP */}
         {step === 1 && (
-          <div className="bg-white shadow-lg rounded-xl p-6 text-center animate-fadeIn">
-            <QrCode className="mx-auto h-12 w-12 text-green-600 mb-4" />
+          <motion.div className="bg-gray-800 shadow-lg rounded-xl p-6 text-center" 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <QrCode className="mx-auto h-12 w-12 text-green-400 mb-4 animate-pulse" />
             <h2 className="text-2xl font-semibold mb-2">Connect to Printer</h2>
-            <p className="text-gray-600 mb-4">Scan QR code or enter printer IP manually.</p>
+            <p className="text-gray-300 mb-4">Scan QR code or enter printer IP manually.</p>
 
             <QRScanner
               onScan={handleQRScan}
               isScanning={isScanning}
               setIsScanning={setIsScanning}
-              constraints={{ facingMode: 'environment' }} // ensure back camera on mobile
+              constraints={{ facingMode: 'environment' }}
             />
 
-            <div className="mt-4">
+            <div className="mt-4 flex justify-center">
               <input
                 type="text"
                 placeholder="Enter printer IP"
                 value={manualIP}
                 onChange={e => setManualIP(e.target.value)}
-                className="border border-gray-300 rounded p-2 mr-2 w-48"
+                className="border border-gray-600 rounded p-2 mr-2 w-48 bg-gray-700 text-white"
               />
               <button
                 onClick={handleManualIPSubmit}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-all shadow-md hover:shadow-lg"
               >
                 Connect
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Step 2: Upload PDF */}
         {step === 2 && (
-          <div className="bg-white shadow-lg rounded-xl p-6 text-center animate-fadeIn">
-            <FileText className="mx-auto mb-4 h-12 w-12 text-blue-600" />
+          <motion.div className="bg-gray-800 shadow-lg rounded-xl p-6 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <FileText className="mx-auto mb-4 h-12 w-12 text-blue-400 animate-bounce" />
             <h2 className="text-2xl font-semibold mb-4">Upload Your Document</h2>
-            <p className="text-gray-600 mb-6">Drag & drop PDF files or click below to upload.</p>
+            <p className="text-gray-300 mb-6">Drag & drop PDF files or click below to upload.</p>
 
             <PDFUploader onPDFUpload={handlePDFUpload} />
 
             {pdfFiles.length > 0 && (
-              <div className="mt-6 space-y-2 bg-blue-50 p-4 rounded-lg">
+              <div className="mt-6 space-y-2 bg-gray-700 p-4 rounded-lg">
                 {pdfFiles.map((file, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded">
+                  <div key={idx} className="flex justify-between items-center bg-gray-900 p-2 rounded hover:bg-gray-800 transition">
                     <span>
                       <strong>{file.name}</strong> – {pageCounts[idx]} page(s)
                     </span>
-                    <button onClick={() => handleRemoveFile(idx)} className="text-red-500 hover:text-red-700">
+                    <button onClick={() => handleRemoveFile(idx)} className="text-red-400 hover:text-red-600">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
                 ))}
-                <p className="font-bold text-blue-900 mt-2">Total: ₹{totalPrice}</p>
+                <p className="font-bold text-blue-400 mt-2 animate-pulse">Total: ₹{totalPrice}</p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Step 3: Payment & Print */}
         {step === 3 && (
-          <div className="bg-white shadow-lg rounded-xl p-6 text-center animate-fadeIn space-y-4">
+          <motion.div className="bg-gray-800 shadow-lg rounded-xl p-6 text-center space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h2 className="text-2xl font-semibold">Payment & Print</h2>
-            <p className="text-gray-600">Pages: {totalPages} | Total: ₹{totalPrice}</p>
+            <p className="text-gray-300">Pages: {totalPages} | Total: ₹{totalPrice}</p>
 
-            <a
+            <motion.a
               href={`upi://pay?pa=receiver@upi&pn=ScanPay&am=${totalPrice}&cu=INR`}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block"
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg inline-block shadow-md hover:shadow-lg hover:bg-blue-600 transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Pay & Print
-            </a>
+            </motion.a>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               After payment, documents will be sent to printer automatically.
             </p>
-          </div>
+          </motion.div>
         )}
 
       </div>
