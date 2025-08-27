@@ -11,6 +11,7 @@ const HomePage: React.FC = () => {
   const [scannedIP, setScannedIP] = useState<string>('');
   const [manualIP, setManualIP] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
+  const [status, setStatus] = useState<string>("");
 
   const pricePerPage = 2;
   const totalPages = pageCounts.reduce((sum, count) => sum + count, 0);
@@ -18,7 +19,7 @@ const HomePage: React.FC = () => {
 
   const handleQRScan = (ip: string) => {
     setScannedIP(ip);
-    setIsScanning(false); // stop scanner after success
+    setIsScanning(false);
     setStep(2);
   };
 
@@ -40,6 +41,45 @@ const HomePage: React.FC = () => {
     setPageCounts(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePaymentAndPrint = async () => {
+    if (pdfFiles.length === 0) {
+      alert("Please upload a PDF first.");
+      return;
+    }
+
+    // Step 1: Open UPI payment link
+    window.location.href = `upi://pay?pa=receiver@upi&pn=ScanPay&am=${totalPrice}&cu=INR`;
+
+    // Step 2: Upload file to backend (ngrok URL)
+    setStatus("Uploading file to printer...");
+
+    const formData = new FormData();
+formData.append("file", file);
+formData.append("printer_ip", scannedIP);
+formData.append("printer_name", "HP LaserJet Pro MFP M126nw[47F853]"); // for now, fixed
+
+await fetch("https://54daf125775d.ngrok-free.app/print", {
+  method: "POST",
+  body: formData,
+});
+
+
+    try {
+        const response = await fetch("https://54daf125775d.ngrok-free.app/print",{
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setStatus("✅ File sent to printer successfully!");
+      } else {
+        setStatus("❌ Failed to send file to printer.");
+      }
+    } catch (error) {
+      setStatus("⚠️ Error connecting to backend.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden text-white py-10 px-4">
       {/* Animated background */}
@@ -48,8 +88,7 @@ const HomePage: React.FC = () => {
       </div>
 
       <div className="relative max-w-4xl mx-auto space-y-10 z-10">
-
-        {/* Progress Indicator with techy glow */}
+        {/* Progress Indicator */}
         <div className="flex justify-between items-center mb-8">
           {['Connect', 'Upload', 'Payment'].map((label, idx) => (
             <div key={idx} className="flex-1">
@@ -74,7 +113,6 @@ const HomePage: React.FC = () => {
             <h2 className="text-2xl font-semibold mb-2">Connect to Printer</h2>
             <p className="text-gray-300 mb-4">Scan QR code or enter printer IP manually.</p>
 
-            {/* Start Camera button (only visible before scanning) */}
             {!isScanning && (
               <button
                 onClick={() => setIsScanning(true)}
@@ -84,13 +122,11 @@ const HomePage: React.FC = () => {
               </button>
             )}
 
-            {/* Camera only renders after user clicks */}
             {isScanning && (
               <QRScanner
                 onScan={handleQRScan}
                 isScanning={isScanning}
                 setIsScanning={setIsScanning}
-                // prefer rear camera; QRScanner will gracefully fall back if not available
                 constraints={{ video: { facingMode: { exact: 'environment' } } }}
               />
             )}
@@ -111,7 +147,6 @@ const HomePage: React.FC = () => {
               </button>
             </div>
 
-            {/* Small helper text showing current/last scanned IP (non-intrusive) */}
             {scannedIP && (
               <p className="mt-3 text-xs text-gray-400">Selected printer: {scannedIP}</p>
             )}
@@ -151,21 +186,18 @@ const HomePage: React.FC = () => {
             <h2 className="text-2xl font-semibold">Payment & Print</h2>
             <p className="text-gray-300">Pages: {totalPages} | Total: ₹{totalPrice}</p>
 
-            <motion.a
-              href={`upi://pay?pa=receiver@upi&pn=ScanPay&am=${totalPrice}&cu=INR`}
+            <motion.button
+              onClick={handlePaymentAndPrint}
               className="bg-blue-500 text-white px-6 py-3 rounded-lg inline-block shadow-md hover:shadow-lg hover:bg-blue-600 transition-all"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               Pay & Print
-            </motion.a>
+            </motion.button>
 
-            <p className="text-sm text-gray-400">
-              After payment, documents will be sent to printer automatically.
-            </p>
+            {status && <p className="text-sm text-gray-400">{status}</p>}
           </motion.div>
         )}
-
       </div>
     </div>
   );
