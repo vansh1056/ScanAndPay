@@ -12,22 +12,27 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
   useEffect(() => {
     const startScanner = async () => {
       try {
-        // Make sure camera permissions are requested
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter((d) => d.kind === "videoinput");
 
         if (cameras.length === 0) {
-          setError("No camera found.");
+          setError("No camera found on this device.");
           return;
         }
 
-        // Pick the first available camera
-        const cameraId = cameras[0].deviceId;
+        // Prefer back camera if available
+        let cameraId = cameras[0].deviceId;
+        const backCamera = cameras.find((c) =>
+          c.label.toLowerCase().includes("back")
+        );
+        if (backCamera) {
+          cameraId = backCamera.deviceId;
+        }
 
         scannerRef.current = new Html5Qrcode("qr-reader");
 
         await scannerRef.current.start(
-          cameraId,
+          { deviceId: { exact: cameraId } },
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
@@ -42,7 +47,9 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
         );
       } catch (err) {
         console.error("Camera start failed:", err);
-        setError("Failed to access camera. Use HTTPS or localhost.");
+        setError(
+          "Failed to access camera. Make sure you're using HTTPS and allowed camera permissions."
+        );
       }
     };
 
@@ -56,7 +63,6 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan }) => {
 
     startScanner();
 
-    // Cleanup when component unmounts
     return () => {
       stopScanner();
     };
