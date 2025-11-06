@@ -20,20 +20,20 @@ const TeamPage: React.FC = () => {
     {
       id: 1,
       name: 'Vansh Singh',
-      role: 'UX/UI Designerr',
+      role: 'Front-end Developer',
       photo: 'Images/member1.jpg',
-      bio: 'One of the developer of Scan & Pay, driving innovation and strategic vision.',
+      bio: 'One of the developer of Public Printer, driving innovation and strategic vision.',
       skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
       social: {
         github: 'https://github.com',
         linkedin: 'https://linkedin.com',
-        email: 'alex@scanpay.com'
+        email: 'Vanshofficial26h6@gmail.com'
       }
     },
     {
       id: 2,
       name: 'Shiv Panwar',
-      role: 'Backend Engineer',
+      role: 'Backend Developer',
       photo: 'Images/member2.jpeg',
       bio: 'backend engineer with a passion for scalable web applications.',
       skills: ['Figma', 'Adobe CC', 'User Research', 'Prototyping'],
@@ -76,7 +76,7 @@ const TeamPage: React.FC = () => {
           <h1 className="text-4xl font-bold text-gray-900">Our Team</h1>
         </div>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Meet the talented individuals behind Scan & Pay, dedicated to revolutionizing 
+          Meet the talented individuals behind Public Printer, dedicated to revolutionizing 
           document printing with innovative technology and exceptional user experience.
         </p>
       </div>
